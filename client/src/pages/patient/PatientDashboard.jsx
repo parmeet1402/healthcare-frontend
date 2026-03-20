@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
-import { appointmentService } from '../../services/appointmentService';
+import {
+  appointmentService,
+  filterAppointmentsByPatient,
+  countUpcomingAppointments,
+} from '../../services/appointmentService';
 import { aiService } from '../../services/aiService';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -18,7 +22,14 @@ export const PatientDashboard = () => {
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const patientId = user?.id ?? user?._id ?? '';
+
   useEffect(() => {
+    if (!patientId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const [statsResponse, appointmentsResponse, analysesResponse, trendsResponse] = await Promise.all([
@@ -27,9 +38,14 @@ export const PatientDashboard = () => {
           aiService.getAll().catch(() => ({ analyses: [] })),
           userService.getTrends().catch(() => ({ trends: [] })),
         ]);
-        setStats(statsResponse.stats);
-        const appointments = appointmentsResponse.appointments || [];
-        setRecentAppointments(appointments.slice(0, 3));
+        const rawAppointments = appointmentsResponse.appointments || [];
+        const myAppointments = filterAppointmentsByPatient(rawAppointments, patientId);
+        setStats({
+          ...statsResponse.stats,
+          myAppointments: myAppointments.length,
+          upcomingAppointments: countUpcomingAppointments(myAppointments),
+        });
+        setRecentAppointments(myAppointments.slice(0, 3));
         const analyses = analysesResponse.analyses || [];
         setRecentAnalyses(analyses.slice(0, 3));
         setTrends(trendsResponse.trends || []);
@@ -41,7 +57,7 @@ export const PatientDashboard = () => {
     };
 
     fetchData();
-  }, []);
+  }, [patientId]);
 
   if (loading) {
     return <div className="text-center py-12">Loading...</div>;

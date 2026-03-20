@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
       if (token && savedUser) {
         try {
           const { user: userData } = await authService.getMe();
-          setUser(userData.user);
+          setUser(userData);
         } catch (error) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');

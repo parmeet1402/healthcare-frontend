@@ -1,5 +1,26 @@
 import api from './api';
 
+export const getAppointmentPatientId = (appointment) => {
+  const patient = appointment?.patient;
+  if (patient == null) return null;
+  return typeof patient === 'object' && patient._id != null ? String(patient._id) : String(patient);
+};
+
+export const filterAppointmentsByPatient = (appointments, patientId) => {
+  if (patientId == null) return [];
+  const pid = String(patientId);
+  return appointments.filter((appointment) => getAppointmentPatientId(appointment) === pid);
+};
+
+export const countUpcomingAppointments = (appointments) => {
+  const now = new Date();
+  return appointments.filter(
+    (appointment) =>
+      ['pending', 'confirmed'].includes(appointment.status) &&
+      new Date(appointment.appointmentDate) >= now
+  ).length;
+};
+
 export const appointmentService = {
   create: async (appointmentData) => {
     const response = await api.post('/appointments', appointmentData);
